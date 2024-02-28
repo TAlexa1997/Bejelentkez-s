@@ -1,25 +1,50 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
-import  axios  from "../api/Axios";
-import  useAuthContext  from "../contexts/AuthContext";
+import { Link, useNavigate } from "react-router-dom";
+
 
 export default function Bejelentkezes() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [errors, setErrors] = useState({
+        name: "",
+        email: "",
+        password: "",
+        password_confirmation: "",
+    });
 
-    const { loginReg, errors } = useAuthContext();
+    
+    let token = "";
+    const csrf = () =>
+        axios.get("/token").then((response) => {
+            console.log(response);
+            token = response.data;
+        });
+    console.log(csrf);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-
+        //lekérjük a csrf tokent
+        await csrf();
         //bejelentkezés
         //Összegyűjtjük egyetlen objektumban az űrlap adatokat
         const adat = {
             email: email,
             password: password,
+            _token: token,
         };
 
-        loginReg(adat, "/login");
+        // Megrpóbáljuk elküldeni a /login végpontra az adatot
+        // hiba esetén kiiratjuk a hibaüzenetet
+        try {
+            await axios.post("/Bejelentkezes", adat );
+            console.log("siker")
+            //sikeres bejelentkezés esetén elmegyünk  a kezdőlapra
+            navigate("/");
+        } catch (error) {
+            if (error.response.status === 422) {
+                setErrors(error.response.data.errors);
+            }
+        }
     };
 
     return (
@@ -80,7 +105,7 @@ export default function Bejelentkezes() {
 
                     <p>
                         Még nincs felhaszálóneve?
-                        <Link className="nav-link text-info" to="/regisztracio">
+                        <Link className="nav-link text-info" to="/Regisztracio">
                             Regisztráció
                         </Link>
                     </p>
